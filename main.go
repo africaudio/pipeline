@@ -15,8 +15,13 @@ import (
 	"github.com/mailgun/mailgun-go/v4"
 )
 
+type Repository struct {
+	CloneURL string `json:"clone_url"`
+}
+
 type PushEvent struct {
-	Ref string `json:"ref"`
+	Ref        string     `json:"ref"`
+	Repository Repository `json:"repository"`
 }
 
 func main() {
@@ -49,7 +54,7 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 	branch := strings.TrimPrefix(event.Ref, "refs/heads/")
 	if branch == "main" || branch == "master" {
 		go func() {
-			if err := buildProject(); err != nil {
+			if err := buildProject(event.Repository.CloneURL); err != nil {
 				log.Printf("Build failed: %v", err)
 				sendEmail("Build Failed", fmt.Sprintf("Build failed for branch %s: %v", branch, err))
 			} else {
@@ -62,10 +67,25 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildProject() error {
-	log.Println("Pulling latest changes...")
-	if err := runCommand("git", "pull"); err != nil {
-		return fmt.Errorf("git pull failed: %w", err)
+func buildProject(repoURL string) error {
+	repoDir := "repoDir" // Replace with your local repository directory
+
+	// Check if the repository directory exists
+	if _, err := os.Stat(repoDir); os.IsNotExist(err) {
+		log.Println("Repository not found, cloning...")
+		if err := runCommand("git", "clone", repoURL, repoDir); err != nil {
+			return fmt.Errorf("git clone failed: %w", err)
+		}
+	} else {
+		log.Println("Repository found, pulling latest changes...")
+		if err := runCommand("git", "-C", repoDir, "pull"); err != nil {
+			return fmt.Errorf("git pull failed: %w", err)
+		}
+	}
+
+	// Change directory to the repo directory before building
+	if err := os.Chdir(repoDir); err != nil {
+		return fmt.Errorf("failed to change directory: %w", err)
 	}
 
 	log.Println("Building project...")

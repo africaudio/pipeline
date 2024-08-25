@@ -1,5 +1,5 @@
 services:
-  flutter_app:
+  flutter_ci:
     build: ./
     volumes:
       - $PWD/STORAGE:/app/build/app/outputs/flutter-apk
@@ -9,5 +9,21 @@ services:
       - MAILGUN_API_KEY=${MAILGUN_API_KEY}
       - EMAIL_SENDER=${EMAIL_SENDER}
       - EMAIL_RECIPIENTS=${EMAIL_RECIPIENTS}
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.flutter_ci.rule=Host(`cicd.ddldlabs.com.ng`)
+      - traefik.http.routers.flutter_ci.tls=true
+      - traefik.http.routers.flutter_ci.tls.certresolver=myresolver
+      - traefik.http.routers.flutter_ci.middlewares=https-redirect@docker
+      - traefik.http.services.flutter_ci.loadbalancer.server.port=8080
+      - traefik.http.routers.flutter_ci-http-to-https.rule=Host(`cicd.ddldlabs.com.ng``)
+      - traefik.http.routers.flutter_ci-http-to-https.entrypoints=web
+      - traefik.http.routers.flutter_ci-http-to-https.middlewares=https-redirect
+    networks:
+      - ddld-net
+
+networks:
+  ddld-net:
+    external: true
