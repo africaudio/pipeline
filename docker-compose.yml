@@ -1,0 +1,13 @@
+services:
+  flutter_app:
+    build: ./
+    volumes:
+      - $PWD/STORAGE:/app/build/app/outputs/flutter-apk
+    environment:
+      - FLUTTER_BUILD=apk
+      - MAILGUN_DOMAIN=${MAILGUN_DOMAIN}
+      - MAILGUN_API_KEY=${MAILGUN_API_KEY}
+      - EMAIL_SENDER=${EMAIL_SENDER}
+      - EMAIL_RECIPIENTS=${EMAIL_RECIPIENTS}
+    ports:
+      - "8080:8080"
